@@ -16,24 +16,6 @@ let gameOverMessage = "";
 
 const movement = { up: false, down: false, left: false, right: false };
 
-// Adiciona as imagens para os animais
-const images = {
-  insect: new Image(),
-  frog: new Image(),
-  bird: new Image(),
-  rat: new Image(),
-  fox: new Image(),
-  eagle: new Image(),
-};
-
-// Define os caminhos das imagens
-images.insect.src = "images/insect.png";
-images.frog.src = "images/frog.png";
-images.bird.src = "images/bird.png";
-images.rat.src = "images/rat.png";
-images.fox.src = "images/fox.png";
-images.eagle.src = "images/eagle.png";
-
 // Dados dos animais com tamanhos e velocidades ajustados de acordo com a cadeia alimentar
 const animalData = {
   insect: { name: "Inseto", speed: 2, size: 10, predator: "frog", canEat: ["frog"] },
@@ -78,25 +60,19 @@ function spawnEntity(type) {
   };
 }
 
-// Função para desenhar as entidades no canvas usando imagens
-function drawEntity(entity) {
-  const image = images[entity.type];
+// Função para desenhar as entidades no canvas
+function drawEntity(entity, color) {
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(entity.x, entity.y, entity.size, 0, Math.PI * 2);
+  ctx.fill();
 
-  if (image.complete) {
-    ctx.drawImage(
-      image,
-      entity.x - entity.size, // Centraliza a imagem
-      entity.y - entity.size,
-      entity.size * 2,        // Largura
-      entity.size * 2         // Altura
-    );
-  } else {
-    // Desenha um círculo temporário enquanto a imagem não carrega
-    ctx.fillStyle = "gray";
-    ctx.beginPath();
-    ctx.arc(entity.x, entity.y, entity.size, 0, Math.PI * 2);
-    ctx.fill();
-  }
+  // Desenha o nome do animal acima dele
+  const animal = animalData[entity.type];
+  const name = animal ? animal.name : "Desconhecido";
+  ctx.fillStyle = "black";
+  ctx.font = "14px Arial";
+  ctx.fillText(name, entity.x - ctx.measureText(name).width / 2, entity.y - entity.size - 10);
 }
 
 // Função para mover a entidade
@@ -111,4 +87,135 @@ function moveEntity(entity) {
   if (entity.y + entity.size > canvas.height) { entity.y = canvas.height - entity.size; entity.dy *= -1; }
 }
 
-// Outras funções continuam iguais, mas agora o jogador e os animais são desenhados com imagens.
+// Função para mover o jogador
+function movePlayer() {
+  if (movement.up && player.y - player.size > 0) player.y -= player.speed;
+  if (movement.down && player.y + player.size < canvas.height) player.y += player.speed;
+  if (movement.left && player.x - player.size > 0) player.x -= player.speed;
+  if (movement.right && player.x + player.size < canvas.width) player.x += player.speed;
+}
+
+// Função principal de renderização do jogo
+function drawGame() {
+  if (!gameRunning || gamePaused) return;
+
+  movePlayer();
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  drawEntity(player, "blue");
+
+  // Desenha as presas
+  for (const prey of preys) {
+    drawEntity(prey, "green");
+    moveEntity(prey);
+
+    // Verifica colisão com o jogador
+    if (isColliding(player, prey)) {
+      score += 5;
+      preys = preys.filter(p => p !== prey);
+    }
+  }
+
+  // Desenha os predadores
+  for (const predator of predators) {
+    drawEntity(predator, "red");
+    moveEntity(predator);
+
+    // Verifica colisão com o jogador
+    if (isColliding(player, predator)) {
+      // Se o jogador (presente) "come" o predador (exemplo, se for maior que o predador ou o predador for predado)
+      if (player.canEat.includes(predator.type)) {
+        score += 10; // Pontuação maior se o jogador comer o predador
+        predators = predators.filter(p => p !== predator);
+      } else {
+        // Caso o jogador morra
+        gameOverMessage = "Lembre-se, nem sempre você é o maior, um dia você pode ser o caçador e no outro a caça";
+        alert("Game Over! Final Score: " + score);
+        gameRunning = false;
+        return;
+      }
+    }
+  }
+
+  // Exibe a pontuação
+  ctx.fillStyle = "black";
+  ctx.font = "20px Arial";
+  ctx.fillText("Score: " + score, 10, 20);
+  ctx.fillText("Round: " + round, 10, 50);
+
+  // Passa para o próximo round
+  if (score >= 25 * round) {
+    round++;
+    if (round > 6) {
+      alert("Você venceu! Pontuação Final: " + score);
+      gameRunning = false;
+      return;
+    }
+    setupRound();
+  }
+
+  // Exibe a mensagem de game over no centro
+  if (gameOverMessage) {
+    ctx.fillStyle = "black";
+    ctx.font = "24px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText(gameOverMessage, canvas.width / 2, canvas.height / 2);
+  }
+
+  requestAnimationFrame(drawGame);
+}
+
+// Função para verificar colisão entre dois objetos
+function isColliding(a, b) {
+  const dist = Math.hypot(a.x - b.x, a.y - b.y);
+  return dist < a.size + b.size;
+}
+
+// Funções para controlar os movimentos do jogador com o clique nos botões
+function setMovement(direction, state) {
+  movement[direction] = state;
+}
+
+// Eventos para controle
+document.getElementById('startButton').addEventListener('click', startGame);
+document.getElementById('pauseButton').addEventListener('click', pauseGame);
+document.getElementById('resetButton').addEventListener('click', resetGame);
+
+// Função para iniciar o jogo
+function startGame() {
+  score = 0;
+  round = 1;
+  gameRunning = true;
+  gamePaused = false;
+  gameOverMessage = "";
+  setupRound(); // Inicia o round 1
+  drawGame(); // Começa o loop de renderização do jogo
+}
+
+// Função para pausar o jogo
+function pauseGame() {
+  gamePaused = !gamePaused;
+  if (gamePaused) {
+    alert("Jogo pausado!");
+  } else {
+    alert("Jogo retomado!");
+    drawGame(); // Retoma o loop de renderização
+  }
+}
+
+// Função para reiniciar o jogo
+function resetGame() {
+  score = 0;
+  round = 1;
+  gameRunning = false;
+  gamePaused = false;
+  gameOverMessage = "";
+  preys = [];
+  predators = [];
+  alert("Jogo reiniciado!");
+  setupRound();
+  drawGame();
+}
+
+// Inicializa o jogo com o primeiro round
+setupRound();
