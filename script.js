@@ -92,31 +92,45 @@ function drawGame() {
   movePlayer();
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+  // Desenha o jogador
   drawEntity(player);
 
+  // Atualiza e desenha as presas
   preys.forEach(prey => {
     drawEntity(prey);
     moveEntity(prey);
+
+    // Verifica colisão com o jogador
     if (isColliding(player, prey)) {
       score += 5;
       preys = preys.filter(p => p !== prey);
     }
   });
 
+  // Atualiza e desenha os predadores
   predators.forEach(predator => {
     drawEntity(predator);
     moveEntity(predator);
+
+    // Verifica colisão com o jogador
     if (isColliding(player, predator)) {
-      alert("Game Over! Pontuação final: " + score);
-      gameRunning = false;
+      if (player.canEat.includes(predator.type)) {
+        score += 10; // Se o jogador pode comer o predador
+        predators = predators.filter(p => p !== predator);
+      } else {
+        alert(`Game Over! Pontuação final: ${score}`);
+        gameRunning = false;
+      }
     }
   });
 
+  // Atualiza a pontuação e o round
   ctx.fillStyle = "black";
   ctx.font = "20px Arial";
   ctx.fillText(`Score: ${score}`, 10, 20);
   ctx.fillText(`Round: ${round}`, 10, 50);
 
+  // Checa se todas as presas foram eliminadas
   if (preys.length === 0) {
     round++;
     setupRound();
@@ -125,11 +139,43 @@ function drawGame() {
   requestAnimationFrame(drawGame);
 }
 
+
 // Configuração do round
 function setupRound() {
-  preys = Array.from({ length: 10 }, () => spawnEntity(preyType));
-  predators = predatorType !== "none" ? [spawnEntity(predatorType)] : [];
+  preys = [];
+  predators = [];
+
+  // Define o tipo de jogador, presas e predadores com base no round atual
+  switch (round) {
+    case 1: player.type = "insect"; preyType = "insect"; predatorType = "frog"; break;
+    case 2: player.type = "frog"; preyType = "insect"; predatorType = "bird"; break;
+    case 3: player.type = "bird"; preyType = "frog"; predatorType = "fox"; break;
+    case 4: player.type = "rat"; preyType = "bird"; predatorType = "fox"; break;
+    case 5: player.type = "fox"; preyType = "rat"; predatorType = "eagle"; break;
+    case 6: player.type = "eagle"; preyType = "fox"; predatorType = "none"; break;
+    default:
+      alert(`Você venceu! Pontuação final: ${score}`);
+      gameRunning = false;
+      return;
+  }
+
+  // Atualiza as propriedades do jogador com base no novo tipo
+  const playerData = animalData[player.type];
+  player.size = playerData.size;
+  player.speed = playerData.speed;
+  player.canEat = playerData.canEat;
+
+  // Cria novas presas e predadores
+  for (let i = 0; i < 10; i++) {
+    preys.push(spawnEntity(preyType));
+  }
+  if (predatorType !== "none") {
+    for (let i = 0; i < 5; i++) {
+      predators.push(spawnEntity(predatorType));
+    }
+  }
 }
+
 
 // Eventos de controle
 document.addEventListener("keydown", e => {
