@@ -132,12 +132,36 @@ function setupRound() {
 
   // Define o tipo de jogador, presas e predadores com base no round atual
   switch (round) {
-    case 1: player.type = "insect"; preyType = "insect"; predatorType = "frog"; break;
-    case 2: player.type = "frog"; preyType = "insect"; predatorType = "bird"; break;
-    case 3: player.type = "bird"; preyType = "frog"; predatorType = "fox"; break;
-    case 4: player.type = "rat"; preyType = "bird"; predatorType = "fox"; break;
-    case 5: player.type = "fox"; preyType = "rat"; predatorType = "eagle"; break;
-    case 6: player.type = "eagle"; preyType = "fox"; predatorType = "none"; break;
+    case 1: 
+      player.type = "insect"; 
+      preyType = "insect"; 
+      predatorType = "frog"; 
+      break;
+    case 2: 
+      player.type = "frog"; 
+      preyType = "insect"; 
+      predatorType = "bird"; 
+      break;
+    case 3: 
+      player.type = "bird"; 
+      preyType = "frog"; 
+      predatorType = "fox"; 
+      break;
+    case 4: 
+      player.type = "rat"; 
+      preyType = "bird"; 
+      predatorType = "fox"; 
+      break;
+    case 5: 
+      player.type = "fox"; 
+      preyType = "rat"; 
+      predatorType = "eagle"; 
+      break;
+    case 6: 
+      player.type = "eagle"; 
+      preyType = "fox"; 
+      predatorType = "none"; 
+      break;
     default:
       alert(`Você venceu! Pontuação final: ${score}`);
       gameRunning = false;
