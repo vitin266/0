@@ -12,7 +12,6 @@ let preyType = "insect";
 let predatorType = "none";
 let gameRunning = false;
 let gamePaused = false;
-let gameOverMessage = "";
 
 const movement = { up: false, down: false, left: false, right: false };
 
@@ -36,13 +35,12 @@ function loadImages() {
   }
 }
 
-// Função para desenhar as entidades com imagem
+// Função para desenhar as entidades
 function drawEntity(entity) {
   const img = images[entity.type];
   if (img) {
     ctx.drawImage(img, entity.x - entity.size, entity.y - entity.size, entity.size * 2, entity.size * 2);
   } else {
-    // Caso a imagem não carregue, desenhe um círculo
     ctx.fillStyle = "gray";
     ctx.beginPath();
     ctx.arc(entity.x, entity.y, entity.size, 0, Math.PI * 2);
@@ -50,21 +48,122 @@ function drawEntity(entity) {
   }
 }
 
-// O resto do seu código permanece o mesmo...
-// Chame loadImages() antes de iniciar o jogo.
-
-document.getElementById('startButton').addEventListener('click', startGame);
-
-// Função para iniciar o jogo
-function startGame() {
-  loadImages(); // Carrega as imagens
-  score = 0;
-  round = 1;
-  gameRunning = true;
-  gamePaused = false;
-  gameOverMessage = "";
-  setupRound(); // Inicia o round 1
-  drawGame(); // Começa o loop de renderização do jogo
+// Função para gerar entidades
+function spawnEntity(type) {
+  const animal = animalData[type];
+  return {
+    type,
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height,
+    size: animal.size,
+    speed: animal.speed,
+    dx: Math.random() < 0.5 ? 1 : -1,
+    dy: Math.random() < 0.5 ? 1 : -1,
+    canEat: animal.canEat,
+  };
 }
 
-// Restante do código para lógica do jogo...
+// Função para verificar colisão
+function isColliding(a, b) {
+  const dist = Math.hypot(a.x - b.x, a.y - b.y);
+  return dist < a.size + b.size;
+}
+
+// Função para mover entidades
+function moveEntity(entity) {
+  entity.x += entity.dx * entity.speed;
+  entity.y += entity.dy * entity.speed;
+  if (entity.x - entity.size < 0 || entity.x + entity.size > canvas.width) entity.dx *= -1;
+  if (entity.y - entity.size < 0 || entity.y + entity.size > canvas.height) entity.dy *= -1;
+}
+
+// Função para mover o jogador
+function movePlayer() {
+  if (movement.up && player.y - player.size > 0) player.y -= player.speed;
+  if (movement.down && player.y + player.size < canvas.height) player.y += player.speed;
+  if (movement.left && player.x - player.size > 0) player.x -= player.speed;
+  if (movement.right && player.x + player.size < canvas.width) player.x += player.speed;
+}
+
+// Função principal do jogo
+function drawGame() {
+  if (!gameRunning || gamePaused) return;
+
+  movePlayer();
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  drawEntity(player);
+
+  preys.forEach(prey => {
+    drawEntity(prey);
+    moveEntity(prey);
+    if (isColliding(player, prey)) {
+      score += 5;
+      preys = preys.filter(p => p !== prey);
+    }
+  });
+
+  predators.forEach(predator => {
+    drawEntity(predator);
+    moveEntity(predator);
+    if (isColliding(player, predator)) {
+      alert("Game Over! Pontuação final: " + score);
+      gameRunning = false;
+    }
+  });
+
+  ctx.fillStyle = "black";
+  ctx.font = "20px Arial";
+  ctx.fillText(`Score: ${score}`, 10, 20);
+  ctx.fillText(`Round: ${round}`, 10, 50);
+
+  if (preys.length === 0) {
+    round++;
+    setupRound();
+  }
+
+  requestAnimationFrame(drawGame);
+}
+
+// Configuração do round
+function setupRound() {
+  preys = Array.from({ length: 10 }, () => spawnEntity(preyType));
+  predators = predatorType !== "none" ? [spawnEntity(predatorType)] : [];
+}
+
+// Eventos de controle
+document.addEventListener("keydown", e => {
+  if (e.key === "ArrowUp") movement.up = true;
+  if (e.key === "ArrowDown") movement.down = true;
+  if (e.key === "ArrowLeft") movement.left = true;
+  if (e.key === "ArrowRight") movement.right = true;
+});
+document.addEventListener("keyup", e => {
+  if (e.key === "ArrowUp") movement.up = false;
+  if (e.key === "ArrowDown") movement.down = false;
+  if (e.key === "ArrowLeft") movement.left = false;
+  if (e.key === "ArrowRight") movement.right = false;
+});
+
+// Botões
+document.getElementById('startButton').addEventListener('click', () => {
+  loadImages();
+  gameRunning = true;
+  score = 0;
+  round = 1;
+  setupRound();
+  drawGame();
+});
+document.getElementById('pauseButton').addEventListener('click', () => {
+  gamePaused = !gamePaused;
+  if (!gamePaused) drawGame();
+});
+document.getElementById('resetButton').addEventListener('click', () => {
+  gameRunning = false;
+  preys = [];
+  predators = [];
+  score = 0;
+  round = 1;
+  setupRound();
+  drawGame();
+});
