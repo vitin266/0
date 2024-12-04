@@ -18,12 +18,12 @@ const movement = { up: false, down: false, left: false, right: false };
 
 // Dados dos animais com tamanhos e velocidades ajustados
 const animalData = {
-  insect: { name: "Inseto", speed: 2, size: 10, predator: "frog", canEat: ["frog"] },
-  frog: { name: "Sapo", speed: 3, size: 20, predator: "bird", canEat: ["insect"] },
-  bird: { name: "Ave", speed: 6, size: 30, predator: "fox", canEat: ["frog"] },
-  rat: { name: "Rato", speed: 5, size: 25, predator: "fox", canEat: ["bird"] },
-  fox: { name: "Raposa", speed: 12, size: 40, predator: "eagle", canEat: ["rat", "bird"] },
-  eagle: { name: "Águia", speed: 15, size: 50, predator: "none", canEat: ["fox"] },
+  insect: { name: "Inseto", speed: 2, size: 10, predator: "frog", canEat: ["frog"], image: "images/insect.png" },
+  frog: { name: "Sapo", speed: 3, size: 20, predator: "bird", canEat: ["insect"], image: "images/frog.png" },
+  bird: { name: "Ave", speed: 6, size: 30, predator: "fox", canEat: ["frog"], image: "images/bird.png" },
+  rat: { name: "Rato", speed: 5, size: 25, predator: "fox", canEat: ["bird"], image: "images/rat.png" },
+  fox: { name: "Raposa", speed: 12, size: 40, predator: "eagle", canEat: ["rat", "bird"], image: "images/fox.png" },
+  eagle: { name: "Águia", speed: 15, size: 50, predator: "none", canEat: ["fox"], image: "images/eagle.png" },
 };
 
 // Função para iniciar o round
@@ -69,15 +69,32 @@ function spawnEntity(type) {
     dx: Math.random() < 0.5 ? 1 : -1,
     dy: Math.random() < 0.5 ? 1 : -1,
     canEat: animal.canEat,
+    image: new Image() // Criação da imagem
   };
 }
 
-// Função para desenhar entidades
+// Função para carregar as imagens
+function loadImages() {
+  for (let key in animalData) {
+    const entity = animalData[key];
+    const img = new Image();
+    img.src = entity.image;
+    entity.image = img;
+  }
+}
+
+// Função para desenhar as entidades com imagem
 function drawEntity(entity) {
-  ctx.fillStyle = entity.type === "insect" ? "green" : entity.type === "eagle" ? "orange" : "red";
-  ctx.beginPath();
-  ctx.arc(entity.x, entity.y, entity.size, 0, Math.PI * 2);
-  ctx.fill();
+  const img = animalData[entity.type]?.image;
+
+  if (img) {
+    ctx.drawImage(img, entity.x - entity.size, entity.y - entity.size, entity.size * 2, entity.size * 2);
+  } else {
+    ctx.fillStyle = "gray"; // Fallback caso a imagem não carregue
+    ctx.beginPath();
+    ctx.arc(entity.x, entity.y, entity.size, 0, Math.PI * 2);
+    ctx.fill();
+  }
 
   // Nome acima do animal
   const name = animalData[entity.type]?.name || "Desconhecido";
@@ -182,6 +199,7 @@ function startGame() {
   gamePaused = false;
   gameOverMessage = "";
   player = { x: 400, y: 300, size: 30, speed: 3, type: "insect", canEat: ["frog"], dx: 0, dy: 0 };
+  loadImages(); // Carregar imagens antes de iniciar o jogo
   setupRound();
   drawGame();
 }
@@ -200,6 +218,7 @@ function resetGame() {
   gamePaused = false;
   preys = [];
   predators = [];
+  loadImages(); // Carregar imagens ao resetar o jogo
   setupRound();
   drawGame();
 }
